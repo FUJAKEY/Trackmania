@@ -28,14 +28,32 @@ jobs:
 
     - name: Build with Gradle
       run: |
-        # Create a basic Gradle project structure on the fly
-        echo "include ':app'" > settings.gradle
+        # Create settings.gradle with plugin repositories
+        cat <<EOF > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "TrackManiaClone"
+        include ':app'
+        EOF
+
         mkdir -p app
 
         # build.gradle for the app module
         cat <<EOF > app/build.gradle
         plugins {
-            id 'com.android.application'
+            id 'com.android.application' version '8.2.0'
         }
 
         android {
@@ -79,14 +97,13 @@ jobs:
             sourceSets {
                 main {
                     manifest.srcFile '../AndroidManifest.xml'
-                    // We don't have Java sources, just C++
                 }
             }
         }
         EOF
 
-        # Gradle Wrapper setup
-        gradle wrapper
+        # Gradle Wrapper setup (Force a compatible version)
+        gradle wrapper --gradle-version 8.6
 
         # Build
         ./gradlew assembleDebug
