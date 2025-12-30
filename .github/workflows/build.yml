@@ -1,0 +1,115 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install NDK
+      run: sdkmanager "ndk;25.2.9519653" "cmake;3.22.1" "platforms;android-33" "build-tools;33.0.0"
+
+    - name: Build with Gradle
+      run: |
+        # Create settings.gradle with plugin repositories
+        cat <<EOF > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "TrackManiaClone"
+        include ':app'
+        EOF
+
+        mkdir -p app
+
+        # build.gradle for the app module
+        cat <<EOF > app/build.gradle
+        plugins {
+            id 'com.android.application' version '8.2.0'
+        }
+
+        android {
+            namespace 'com.jules.trackmaniaclone'
+            compileSdk 33
+            ndkVersion "25.2.9519653"
+
+            defaultConfig {
+                applicationId "com.jules.trackmaniaclone"
+                minSdk 21
+                targetSdk 33
+                versionCode 1
+                versionName "1.0"
+
+                externalNativeBuild {
+                    cmake {
+                        arguments "-DANDROID_STL=c++_static"
+                        cppFlags ""
+                    }
+                }
+                ndk {
+                    abiFilters 'arm64-v8a'
+                }
+            }
+
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                    signingConfig signingConfigs.debug
+                }
+            }
+
+            externalNativeBuild {
+                cmake {
+                    path "../CMakeLists.txt"
+                    version "3.22.1"
+                }
+            }
+
+            sourceSets {
+                main {
+                    manifest.srcFile '../AndroidManifest.xml'
+                }
+            }
+        }
+        EOF
+
+        # Gradle Wrapper setup (Force a compatible version)
+        gradle wrapper --gradle-version 8.6
+
+        # Build
+        ./gradlew assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: trackmania-clone-debug.apk
+        path: app/build/outputs/apk/debug/app-debug.apk

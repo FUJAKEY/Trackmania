@@ -1,0 +1,15 @@
+build/
+raylib_src/
+.gradle/
+app/
+settings.gradle
+gradlew
+gradlew.bat
+gradle/
+local.properties
+.idea/
+*.iml
+*.o
+*.a
+*.so
+*.apk
