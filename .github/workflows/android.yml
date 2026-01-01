@@ -33,7 +33,7 @@ jobs:
     - name: Build with Gradle
       run: |
         # Ensure we use the correct Gradle version defined in gradle-wrapper.properties
-        gradle wrapper
+        gradle wrapper --gradle-version 8.6
         ./gradlew assembleDebug
 
     - name: Upload APK
